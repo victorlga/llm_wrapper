@@ -1,23 +1,42 @@
-from langchain.llms import LLM  # This is the base class for LLMs in LangChain
-from langchain.openai import OpenAI  # Predefined wrapper for OpenAI
-from langchain.huggingface import HuggingFace  # Predefined wrapper for Hugging Face models
+import argparse
+from custom_llm_wrapper import CustomLLMWrapper  # Assume this is your implemented class
 
-# Custom LLM Wrapper that can leverage different providers
-class CustomLLMWrapper:
-    def __init__(self, provider, model_name, **kwargs):
-        if provider == "openai":
-            self.llm = OpenAI(model_name=model_name, **kwargs)
-        elif provider == "huggingface":
-            self.llm = HuggingFace(model_name=model_name, **kwargs)
-        # Add more elif blocks here for other providers
-        else:
-            raise ValueError(f"Provider {provider} not supported.")
+def main():
+    parser = argparse.ArgumentParser(description="Interact with different LLMs through a unified interface.")
+    parser.add_argument("--provider", help="Select the LLM provider", required=True, choices=['openai', 'huggingface'])
+    parser.add_argument("--stream", help="Use streaming for responses (if supported by the LLM)", action="store_true")
 
-    def invoke(self, prompt, **kwargs):
-        return self.llm.invoke(prompt, **kwargs)
+    args = parser.parse_args()
 
-    def stream(self, prompt, **kwargs):
-        if hasattr(self.llm, "stream"):
-            return self.llm.stream(prompt, **kwargs)
-        else:
-            raise NotImplementedError(f"Streaming not implemented for {type(self.llm).__name__}")
+    # Placeholder for dynamic model selection based on provider
+    if args.provider == "openai":
+        model_options = ["text-davinci-003", "gpt-3.5-turbo"]  # Example options for OpenAI
+    elif args.provider == "huggingface":
+        model_options = ["gpt2", "EleutherAI/gpt-neo-2.7B"]  # Example options for Hugging Face
+
+    # Dynamically ask user to choose a model from the selected provider
+    model_name = input(f"Select a model from {args.provider} ({', '.join(model_options)}): ")
+
+    # Ensure the selected model is valid
+    if model_name not in model_options:
+        print("Invalid model selected. Please choose from the available options.")
+        return
+
+    # Example prompt
+    prompt = input("Enter your prompt: ")
+
+    # Initialize the wrapper
+    wrapper = CustomLLMWrapper(provider=args.provider, model_name=model_name)
+
+    # Check if streaming is requested and supported
+    if args.stream and hasattr(wrapper, 'stream'):
+        print("Streaming responses:")
+        for chunk in wrapper.stream(prompt):
+            print(chunk, end="", flush=True)
+    else:
+        # Fall back to the standard invoke method
+        response = wrapper.invoke(prompt)
+        print("Response:", response)
+
+if __name__ == "__main__":
+    main()
